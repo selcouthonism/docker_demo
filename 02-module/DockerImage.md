@@ -42,7 +42,7 @@ docker run -it --rm -p 8080:80 --name mynginx chainguard/nginx
 ### docker container ps: List containers
 docker container ps lists all running Docker containers. It shows details like container ID, image name, command, uptime, ports, and container name. It's useful for monitoring active containers, checking port mappings, and managing container lifecycles.
 ```
-docker ps -a
+docker ps
 ```
 Add **-a** to view both running and stopped containers.
 ```
