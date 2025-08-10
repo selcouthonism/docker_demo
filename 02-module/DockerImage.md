@@ -57,10 +57,30 @@ docker exec -it mynginx bash
 ```
 Opens an interactive Bash shell inside the running mynginx container. The **-it** flags enable terminal input/output, allowing you to run commands inside the container. This is useful for debugging, inspecting files, or managing the container's environment from within.
 
+> Note: While **bash** is common, **sh** is often the default shell in many minimal Docker images like NGINX.
+
 ```
 cat /etc/nginx/conf.d/default.conf 
 ```
 The command displays the contents of the default NGINX server block configuration file inside a container or system. It shows how NGINX is set to handle requests—like ports, server names, root paths, and proxy settings—helpful for understanding or debugging web server behavior.
+
+The following script will install vim tool inside the container.
+```
+apt-get update
+apt-get install vim
+```
+
+Update index.html file (Change "Welcome to nginx!" to "Welcome to **UPDATED** nginx!"):
+```
+vim /usr/share/nginx/html/index.html
+```
+
+**NOTE:** 
+Docker container as a temporary, isolated environment. When you make changes directly inside a running container, those changes are stored within the container's writable layer. This layer is designed to be lightweight and specific to that container instance.
+
+The "ephemeral" nature means that this writable layer is not persistent. When the container is stopped and removed, that writable layer, along with all the changes you made to files like index.html or installed software like Vim, is discarded. It's like writing on a whiteboard that gets erased when you close the application.
+
+This design is intentional! It makes containers fast to start, easy to replicate, and ensures that each new container starts from a clean, consistent image.
 
 ### curl: Call nginx server
 ```
@@ -106,6 +126,25 @@ Removes all containers on your system — both running and stopped.
 docker rm $(docker ps -aq)
 ```
 **-a**: Includes all containers (running, stopped, exited)
+
+### docker filter
+You can use the **--filter** flag to scope your commands. When filtering, the commands only include entries that match the pattern you specify.
+
+The --filter flag expects a key-value pair separated by an operator.
+```
+docker COMMAND --filter "KEY=VALUE"
+```
+The key represents the field that you want to filter on. The value is the pattern that the specified field must match. The operator can be either equals (=) or not equals (!=).
+
+For example, the following command filters the output of the docker images command to only print nginx images.
+```
+docker images --filter reference=nginx
+```
+
+You can combine multiple filters by passing multiple --filter flags. The following example shows how to print all images that match nginx:latest or busybox - a logical **OR**.
+```
+docker images --filter reference=nginx:latest --filter=reference=busybox
+```
 
 ### Help:
 docker --help displays a list of Docker's top-level commands and usage options. It guides users on how to interact with Docker, showing commands like run, build, ps, etc. Each command also supports --help for detailed options, making it essential for learning and troubleshooting Docker usage from the CLI.
