@@ -1,0 +1,37 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+debug.log
+logs.txt
+
+# Build & runtime artifacts
+dist/
+build/
+coverage/
+tmp/
+.cache/
+
+# OS-generated
+.DS_Store
+Thumbs.db
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+docker-compose.override.yml
