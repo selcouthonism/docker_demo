@@ -115,6 +115,14 @@ Stops all running Docker containers on your system.
 **docker ps**: Lists running containers (default shows only running ones)
 **-q**: Quiet mode — outputs only container IDs
 
+### docker pause: Pause container
+**docker stop** initiates a graceful shutdown and terminates the container, which means any data stored in memory within that container is lost. On the other hand, **docker pause** temporarily suspends all processes in the container, but crucially, it preserves its memory state. This means if you pause a container, the in-memory data remains intact, and you can unpause it to resume exactly where it left off.
+The command to resume a paused container is **docker unpause**.
+```
+docker pause mynginx
+docker unpause mynginx
+```
+
 ### docker remove: Remove stopped containers
 Removes container with given container name or container id.
 ```
