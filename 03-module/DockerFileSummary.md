@@ -17,6 +17,8 @@ LABEL description="My app container"
 ```
 
 ### 3. Working Directory
+It sets the working directory for any RUN, CMD, ENTRYPOINT, COPY, or ADD instructions that follow it in the Dockerfile. This is important because it keeps your Dockerfile clean and ensures that all subsequent commands are executed in the expected location within the container.
+
 Set the default directory inside the container. Any subsequent command runs relative to this directory.
 ```
 WORKDIR /app
@@ -145,6 +147,8 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 When you use **docker build**, Docker processes each instruction in your Dockerfile layer by layer. If a layer hasn't changed since the last build, Docker can reuse the existing layer from its cache instead of re-executing all the commands for that layer. This is particularly helpful when you're iterating on your code.
 
 For example, if you have a **COPY** instruction for your application code at the end of your Dockerfile, and you only change that code, Docker can reuse all the previous layers (like base image and any installed packages/dependencies would be pulled from the cache) and only rebuild the final layer with your new code. This makes the build process much faster and more efficient for iterative development.
+
+> **Note:** The **.** signifies the build context, telling Docker to look for the Dockerfile and any necessary files in the current directory.
 
 ### First hello-world docker image
 Create a Dockerfile:
