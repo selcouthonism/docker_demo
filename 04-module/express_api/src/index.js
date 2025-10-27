@@ -7,13 +7,14 @@ const bodyParser = require('body-parser')
 //import bodyParser from 'body-parser'
 
 const app = express()
-const port = 3000
+const appName = process.env.APP_NAME
+const port = process.env.PORT
 
 app.use(bodyParser.json())
 
 app.get('/', (req, res) => {
   const timestamp = new Date().toISOString(); // e.g. 2025-10-21T14:30:00.123Z
-  res.send(`Hello world from express_api. Current time is: ${timestamp}`)
+  res.send(`Hello world from express_api. The app name is: ${appName}. Current time is: ${timestamp}`)
 })
 
 app.listen(port, () => {

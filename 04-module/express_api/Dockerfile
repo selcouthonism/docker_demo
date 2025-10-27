@@ -1,18 +1,23 @@
-FROM node:24.10.0
+FROM node:24.10.0-slim
 
 WORKDIR /app
 
-#Copy package.json and package-lock.json
+## Copy only dependency manifests first Copy package.json and package-lock.json
 COPY package*.json .
 
-#Install the dependencies
+#Install the dependencies (npm install is cached unless dependencies change)
 RUN npm ci
 
 #Copy the source code of application
-COPY src/index.js index.js
+#COPY src/index.js index.js
+COPY . .
+
+#Define ENV variables
+ENV APP_NAME="Express APP"
+ENV PORT=3000
 
 #Expose the application port
-EXPOSE 3000
+EXPOSE ${PORT}
 
 #Start application
-CMD [ "node", "index.js" ]
+CMD [ "node", "src/index.js"]
