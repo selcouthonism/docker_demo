@@ -122,6 +122,45 @@ node:24.10 is the full Debian image (~350+ MB). Only use (node:24.10) if you nee
 node:24.10.0-slim is based on Debian slim. It is stable and widely supported. It is compatible with almost all npm packages, including those requiring native modules. Also security patches are applied regularly.
 - Always pin Node.js version for reproducibility: node:24.10.0-slim instead of node:24-slim.
 
+Build Dockerfile:
+```
+docker build -t express_api_image:0.0.2 -f Dockerfile.multistage .
+```
+
+```
+docker run --rm --name express_multi_stage -d -p 3000:3000 express_api_image:0.0.2
+```
+
+#### Distroless Image:
+A distroless image is a container image with a minimal list of applications that also shares the host Linux kernel. Distroless container images contains only the runtime and libraries required to run your app and don’t include a package manager, shell or a web client (such as curl or wget). With fewer components to exploit, distroless images limit what attackers can do if a container is compromised. This makes them a practical alternative for developers struggling with the utility and security dilemma that comes with Linux distros. 
+
+Examples for Node.js: gcr.io/distroless/nodejs:24 (Usually smaller than node:slim (~40–60 MB vs 120 MB))
+
+Using Distroless images comes with several caveats. Since there is no shell included, you cannot run bash or sh inside the container for quick debugging, so all logs and troubleshooting must rely on application-level logging. Additionally, you must copy only the necessary files into the image, as Distroless requires everything your app needs to be present; while the Node.js binary is included, any native dependencies must already exist in your node_modules. There is also no package manager or system tools available, so you cannot install new packages at runtime, and utilities such as curl or git are not included. Finally, the ENTRYPOINT or CMD must point to an executable that exists in the image, for example, ["node", "src/index.js"].
+
+The following Docker instruction will create an error:
+```
+FROM gcr.io/distroless/nodejs24 AS production
+
+RUN useradd -m appuser
+USER appuser
+```
+
+Error message:
+```
+runc run failed: unable to start container process: error during container init: exec: "/bin/sh": stat /bin/sh: no such file or directory
+```
+
+Distroless images don’t include a shell or package manager, so commands like **useradd** cannot be run inside the container. Let me explain carefully. **RUN useradd -m appuser** is a build-time command that executes in a shell (/bin/sh) and Distroless images do not have /bin/sh or any shell. Therefore, Docker cannot execute useradd and throws an error.
+
+```
+docker build -t express_api_image:0.0.3 -f Dockerfile.multistage-distroless .
+```
+
+```
+docker run --rm --name express_multi_stage_distroless -d -p 3000:3000 express_api_image:0.0.3
+```
+
 #### .dockerignore file
 Just like a .gitignore file, a **.dockerignore** file tells Docker which files and directories to exclude when building the image. This prevents unnecessary files (like node_modules from your local development environment, or build artifacts) from being copied into the image, which can significantly reduce its size.
 
@@ -135,5 +174,10 @@ npm-debug.log*
 **/*.env*
 ```
 
+#### Initial unresponsiveness
+One common reason for initial unresponsiveness is that the application might not be fully initialized and listening for connections immediately after the CMD instruction runs. While CMD node index.js starts the application, there might be a brief period where the server is still booting up or connecting to databases.
 
+To address this, you could implement a health check within your Dockerfile or your orchestration system (like Docker Compose or Kubernetes). A health check periodically pings a specific endpoint of your application to ensure it's not just running, but also ready to serve requests. This prevents traffic from being routed to an application that's still starting up.
+
+Another approach is to ensure that the application's startup script (e.g., index.js) handles all necessary initialization synchronously or with proper callbacks/promises before it signals that it's ready to accept connections.
 

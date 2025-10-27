@@ -8,8 +8,7 @@ COPY package*.json .
 #Install the dependencies (npm install is cached unless dependencies change)
 RUN npm ci
 
-#Copy the source code of application
-#COPY src/index.js index.js
+#Copy the source code of application (COPY src/index.js index.js or COPY src src)
 COPY . .
 
 #Define ENV variables

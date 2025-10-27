@@ -1,0 +1,45 @@
+# -------- Build Stage --------
+FROM node:24.10.0-slim AS build
+
+# Set working directory
+WORKDIR /app
+
+# Copy dependency manifests first (for caching)
+COPY package*.json ./
+
+# Install production dependencies
+RUN npm ci --only=production
+
+# Copy all source code
+COPY src ./src
+
+# -------- Production Stage --------
+FROM node:24.10.0-slim AS production
+
+# Set working directory
+WORKDIR /app
+
+# Security best practice: non-root user
+RUN useradd -m appuser
+USER appuser
+
+# Copy only production dependencies from build stage
+COPY --from=build /app/node_modules ./node_modules
+
+# Copy source code
+#Copy from build stage rather than local host to avoid accidentally including unwanted local files. Consistent build, independent of local machine state.
+COPY --from=build /app/src ./src
+
+# Set environment variables (optional defaults)
+ENV APP_NAME="Express API"
+ENV PORT=3000
+
+# Expose port
+EXPOSE ${PORT}
+
+# Optional: Healthcheck for production monitoring
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s \
+  CMD curl -f http://localhost:${PORT}/ || exit 1
+
+# Start application
+CMD ["node", "src/index.js"]
