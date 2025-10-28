@@ -17,6 +17,8 @@ Install packages/dependencies:
 npm install express@5.1.0 body-parser@2.2.0 --save-exact
 ```
 
+> Note: Express 5 already includes modern body parsing (express.json(), express.urlencoded()), and body-parser is no longer needed in 2025.
+
 Add start script (**"start": "node src/index.js"**) into package.json to start the Node.js application using npm and start app with:
 ```
 npm start
@@ -181,3 +183,127 @@ To address this, you could implement a health check within your Dockerfile or yo
 
 Another approach is to ensure that the application's startup script (e.g., index.js) handles all necessary initialization synchronously or with proper callbacks/promises before it signals that it's ready to accept connections.
 
+# typescript_api
+
+## Preparation commands:
+
+Create a package.json:
+```
+npm init -y
+```
+
+Install packages/dependencies:
+```
+npm install express@5.1.0 --save-exact
+```
+
+Install typescript development dependency:
+```
+npm install --save-dev --save-exact typescript@5.9.3 @types/express
+```
+
+Install typescript development dependency:
+```
+npm install --save-dev --save-exact tsx@4.19.1
+```
+
+Initialize typescript project (add tsconfig.json):
+```
+npx tsc --init --rootDir src --outDir dist --esModuleInterop true --moduleResolution node --strict true
+```
+
+**esModuleInterop**: Lets TypeScript gracefully interoperate with both ES Modules (import something from 'x') and old CommonJS (module.exports = …). In 2025, ALWAYS set this to **true**. It makes TypeScript behave like real modern JavaScript.
+
+When esModuleInterop: true, you can write:
+```
+import express from "express"; // works like in modern ESM
+```
+
+If it's false, you'd be forced to write:
+```
+import * as express from "express"; // clunky, older style
+```
+
+**moduleResolution**: Controls how TypeScript locates and resolves imported modules. Think: “how should TS behave when it sees an import x from './file'?”
+
+Options: 
+- **node**: Old Classic Node.js module resolution strategy ("module": "nodenext", "moduleResolution": "nodenext")
+- **bundler**: Modern behavior same as Vite / Webpack / Node ESM — future-proof
+- **nodenext**: Fully aligns with Node.js’s native .mjs/.cjs behavior ("module": "commonjs", "moduleResolution": "node")
+
+For backend servers: "node" or "nodenext" is fine. For frontend or SSR-ready: use "bundler" (recommended going forward).
+
+## Start the application:
+
+The workflow is:
+- **npm run dev** while coding
+- **npm run build** before deployment
+- **npm start** on the server
+
+Development (auto-reload on changes):
+It uses tsx watch src/index.ts and watches your .ts files and reloads automatically.
+```
+npm run dev
+```
+
+Build (compile TypeScript → JavaScript):
+It uses **tsc** and compiles all TypeScript files in **src/** into **dist/**. It generates .js files + .d.ts declarations if enabled.
+```
+npm run build
+```
+
+Production (run compiled code):
+It runs **node dist/index.js** (Make sure you ran **npm run build** first)
+```
+npm start
+```
+
+Run the Node.js runtime to execute JavaScript file (running the compiled TypeScript output in the dist folder (index.js)):
+```
+PORT=4000 node dist/index.js
+```
+PORT=4000 sets an environment variable called PORT for this single command execution. The Node.js app can read it with (const port = process.env.PORT || 3000). If you don’t set it, your app will fallback to 3000 (or whatever default you coded).
+
+
+### Run TypeScript files directly:
+```
+node src/index.ts
+```
+Normally, Node.js cannot run TypeScript files directly because it only understands JavaScript. **src/index.ts** is a TypeScript file (contains type annotations and maybe ESNext syntax). If you just run **node src/index.ts**, it will fail unless you have a tool that allows Node to execute TypeScript on the fly.
+
+The behavior is different with Node 24 + ESM support. **Node 24** + **"type": "module"** + **tsx** allows native execution of .ts files with ES modules. The runtime automatically handles TypeScript transpilation in memory, so it does not throw any error.
+
+**"type": "commonjs"** in package.json: Node treats .js files as CommonJS modules (uses require() / module.exports).
+If your code has ES module syntax (import express from "express"), Node cannot run .ts files directly. You must compile first (tsc) or use ts-node/tsx.
+
+**"type": "module"** in package.json: Tells Node to treat all .js files (and .ts via tsx/ts-node) as ES modules. Node can now natively understand import / export syntax. When combined with a runtime like tsx, Node can also run .ts files directly.
+
+### Create Dockerfile:
+
+**--only=production** only installs the production dependencies but typescript is in devDependencies so **tsc** is never installed (npm ci -only=production build fails). 
+In the following, install all dependencies in build stage and remove dev deps after build.
+```
+RUN npm ci
+RUN npm prune --omit=dev
+```
+
+Copy source code and compile it in the first stage:
+```
+COPY tsconfig.json tsconfig.json 
+COPY src ./src
+RUN npm run build
+```
+
+Copy the compiled code from first stage into second stage:
+```
+COPY --from=build /app/dist ./dist
+```
+
+Create docker image:
+```
+docker build -t typescript_api_image:0.0.1 -f Dockerfile.multistage-distroless .
+```
+
+```
+docker run --rm --name ts_multi_stage_distroless -d -p 3000:3000 typescript_api_image:0.0.1
+```

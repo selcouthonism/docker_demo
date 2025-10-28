@@ -4,22 +4,21 @@ FROM node:24.10.0-slim AS build
 # Set working directory
 WORKDIR /app
 
+# Create non-root user if not exists in build stage
+RUN id -u appuser 2>/dev/null || useradd -m appuser \
+  && chown -R appuser:appuser /app
+
+#find its UID by adding a temporary command:
+#RUN id -u appuser
+
 # Copy dependency manifests first (for caching)
 COPY package*.json ./
 
 # Install production dependencies (Install dependencies as root, switch to non-root after)
 RUN npm ci --only=production
 
-# Create non-root user in build stage
-RUN useradd -m appuser
-
 # Copy all source code
 COPY src ./src
-
-RUN chown -R appuser:appuser /app
-
-#find its UID by adding a temporary command:
-#RUN id -u appuser
 
 # Switch to non-root user
 USER appuser
@@ -43,7 +42,7 @@ COPY --from=build /app/src ./src
 USER 1000
 
 # Set environment variables (optional defaults)
-ENV APP_NAME="Express API"
+ENV APP_NAME="Express API multistage-distroless"
 ENV PORT=3000
 
 # Expose port

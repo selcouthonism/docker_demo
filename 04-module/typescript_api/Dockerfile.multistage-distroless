@@ -4,30 +4,30 @@ FROM node:24.10.0-slim AS build
 # Set working directory
 WORKDIR /app
 
+# Create non-root user if not exists in build stage
+RUN id -u appuser 2>/dev/null || useradd -m appuser \
+  && chown -R appuser:appuser /app
+
+#find its UID by adding a temporary command:
+#RUN id -u appuser
+
 # Copy dependency manifests first (for caching)
 COPY package*.json ./
 
 # Install all dependencies (dev + prod) (typescript is in devDependencies)
 RUN npm ci
 
-# Copy all source code
-COPY src ./src
-
 # Copy typescript config file
 COPY tsconfig.json tsconfig.json 
+
+# Copy all source code
+COPY src ./src
 
 # Build application
 RUN npm run build
 
 # Remove dev deps AFTER build
 RUN npm prune --omit=dev
-
-# Create non-root user in build stage
-RUN useradd -m appuser
-RUN chown -R appuser:appuser /app
-
-#find its UID by adding a temporary command:
-#RUN id -u appuser
 
 # Switch to non-root user
 USER appuser

@@ -4,6 +4,10 @@ FROM node:24.10.0-slim AS build
 # Set working directory
 WORKDIR /app
 
+# Security best practice: non-root user
+RUN id -u appuser 2>/dev/null || useradd -m appuser \
+  && chown -R appuser:appuser /app
+
 # Copy dependency manifests first (for caching)
 COPY package*.json ./
 
@@ -13,15 +17,14 @@ RUN npm ci --only=production
 # Copy all source code
 COPY src ./src
 
+# Switch to non-root user
+USER appuser
+
 # -------- Production Stage --------
 FROM node:24.10.0-slim AS production
 
 # Set working directory
 WORKDIR /app
-
-# Security best practice: non-root user
-RUN useradd -m appuser
-USER appuser
 
 # Copy only production dependencies from build stage
 COPY --from=build /app/node_modules ./node_modules
@@ -31,7 +34,7 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/src ./src
 
 # Set environment variables (optional defaults)
-ENV APP_NAME="Express API"
+ENV APP_NAME="Express API multistage"
 ENV PORT=3000
 
 # Expose port
