@@ -2,20 +2,24 @@
   "name": "typescript_api",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "dependencies": {
     "body-parser": "2.2.0",
     "express": "5.1.0"
   },
   "devDependencies": {
     "@types/express": "5.0.5",
+    "tsx": "4.19.1",
     "typescript": "5.9.3"
   }
 }
