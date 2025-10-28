@@ -1,0 +1,66 @@
+# -------- Build Stage --------
+FROM node:24.10.0-slim AS build
+
+# Set working directory
+WORKDIR /app
+
+# Copy dependency manifests first (for caching)
+COPY package*.json ./
+
+# Install all dependencies (dev + prod) (typescript is in devDependencies)
+RUN npm ci
+
+# Copy all source code
+COPY src ./src
+
+# Copy typescript config file
+COPY tsconfig.json tsconfig.json 
+
+# Build application
+RUN npm run build
+
+# Remove dev deps AFTER build
+RUN npm prune --omit=dev
+
+# Create non-root user in build stage
+RUN useradd -m appuser
+RUN chown -R appuser:appuser /app
+
+#find its UID by adding a temporary command:
+#RUN id -u appuser
+
+# Switch to non-root user
+USER appuser
+
+# -------- Production Stage --------
+#FROM node:24.10.0-slim AS production
+FROM gcr.io/distroless/nodejs24 AS production
+
+# Set working directory
+WORKDIR /app
+
+# Copy only production dependencies from build stage
+COPY --from=build /app/node_modules ./node_modules
+
+# Copy compiled code
+#Copy from build stage rather than local host to avoid accidentally including unwanted local files. Consistent build, independent of local machine state.
+COPY --from=build /app/dist ./dist
+
+# Run container as the same UID as the build-stage user
+# In Debian-based node:slim, useradd creates UID 1000 by default
+USER 1000
+
+# Set environment variables (optional defaults)
+ENV APP_NAME="Typescript API"
+ENV PORT=3000
+
+# Expose port
+EXPOSE ${PORT}
+
+# Optional: Healthcheck for production monitoring
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s \
+  CMD curl -f http://localhost:${PORT}/ || exit 1
+
+# Start application
+# Distroless has no node binary — not call node manually - distroless already sets node as the entrypoint internally.
+CMD ["dist/index.js"]
