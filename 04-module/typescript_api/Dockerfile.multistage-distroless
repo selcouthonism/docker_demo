@@ -53,6 +53,7 @@ USER 1000
 # Set environment variables (optional defaults)
 ENV APP_NAME="Typescript API"
 ENV PORT=3000
+ENV ALLOWED_ORIGINS=http://localhost:5173
 
 # Expose port
 EXPOSE ${PORT}
