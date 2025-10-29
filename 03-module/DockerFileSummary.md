@@ -40,7 +40,7 @@ RUN apt-get update && apt-get install -y python3
 ```
 
 ### 6. Environment Variables
-Defines environment variables available inside the container. It can be overridden at runtime using docker run -e.
+Defines environment variables available inside the container. It can be overridden at runtime using ***docker run -e*** or ***docker run --env***.
 ```
 ENV APP_ENV=production
 ```
@@ -53,9 +53,14 @@ EXPOSE 8080
 > Note: Doesn’t actually publish the port; you still need -p 8080:8080 when running.
 
 ### 8. Default Commands
-Defines the default container start command. Only one **CMD** is allowed per Dockerfile (last one wins). It can be overridden with docker run <image> <command>.
+Defines the default container start command. Only one **CMD** is allowed per Dockerfile (last one wins). It can be overridden with ***docker run [image] [command]***.
 ```
 CMD ["python3", "app.py"]
+```
+
+Override the CMD command when you running the container. CMD (python3 app.py) is replaced completely with python3 another.py.
+```
+docker run myimage python3 another.py
 ```
 
 ### 9. Entrypoint
@@ -69,6 +74,27 @@ Running → ping google.com:
 ENTRYPOINT ["ping"]
 CMD ["google.com"]
 ```
+
+CMD arguments are easily overridden by command-line arguments when running a container, making it suitable for defining default commands that users might want to change. On the other hand, ENTRYPOINT is indeed harder to override and is often used to configure a container that will run as an executable. When you provide additional arguments on the command line, they are appended to the ENTRYPOINT command, acting as its parameters. This distinction is crucial for creating flexible yet predictable Docker images. 
+
+***--entrypoint*** is a runtime flag you use with docker run to override the ENTRYPOINT defined in the Dockerfile. It’s typically used for debugging or when you need to run something different temporarily, without rebuilding the image.
+
+Dockerfile:
+```
+ENTRYPOINT ["node"]
+CMD ["src/index.js"]
+```
+
+Normal run (runs node src/index.js):
+```
+docker run myimage
+```
+
+Override ENTRYPOINT at runtime (get bash shell inside the container, ENTRYPOINT is replaced with bash):
+```
+docker run --entrypoint bash -it myimage
+```
+CMD is still there but now becomes an argument to bash, so you'd typically avoid that by passing nothing.
 
 ### 10. Volumes
 Declares mount points for persistent storage. Good for databases, logs, or configs.

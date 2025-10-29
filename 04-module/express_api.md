@@ -1,3 +1,9 @@
+# Projects
+- [express_api](#express_api)
+- [typescript_api](#typescript_api)
+- [react_app](#react_app)
+- [spring_api](#spring_api)
+
 # express_api
 
 ## Create an express project
@@ -307,3 +313,89 @@ docker build -t typescript_api_image:0.0.1 -f Dockerfile.multistage-distroless .
 ```
 docker run --rm --name ts_multi_stage_distroless -d -p 3000:3000 typescript_api_image:0.0.1
 ```
+
+# react_app
+
+## Preparation commands:
+
+Create react project:
+```
+npm create vite@latest react_app -- --template react
+```
+
+Create react project with typescript (This one is used in this project):
+```
+npm create vite@latest react_app -- --template react-ts
+```
+Creates a new React + TypeScript project called react_app, using the latest Vite template.
+
+**vite@latest** ensures you’re using the latest version of the Vite scaffolding tool. It guarantees you’re not accidentally using an older cached version on your machine and it’s the recommended way to always start with the most up-to-date project setup.
+
+**--template react**: The language is JavaScript (ES6)
+
+**--template react_ts**: The language is Typescript (includes full TypeScript support (tsconfig.json, .tsx files, type checking, etc.)) Provides enterprise-level quality, scalability, IntelliSense, autocompletion, fewer runtime bugs.
+
+build and start application:
+```
+npm run build
+npm run dev
+```
+
+### Update the backend applications:
+Install cors in express_api and typescript_api:
+**CORS**: The React app runs on http://localhost:5173 (Vite default), so the backend must allow cross-origin requests. 
+```
+npm install cors
+
+# if using TypeScript, also install types
+npm install --save-dev @types/cors
+```
+
+**CORS (Cross-Origin Resource Sharing)** is a browser security mechanism that controls how web applications running on one origin (domain, protocol, or port) can request resources from a different origin. By default, browsers enforce a same-origin policy, blocking requests from other origins to prevent malicious access to sensitive data. CORS allows a server to explicitly declare which origins are permitted to access its resources by sending specific HTTP headers (Access-Control-Allow-Origin, Access-Control-Allow-Methods, etc.). This way, trusted frontends can interact with APIs hosted on different domains while unauthorized requests are blocked, ensuring both flexibility and security.
+
+Update index.ts file in typescript_api and add ALLOWED_ORIGINS to Dockerfile:
+```
+// Configure CORS
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);  // allow
+    } else {
+      callback(new Error("Not allowed by CORS"));  // block
+    }
+  },
+  optionsSuccessStatus: 200
+}));
+```
+
+Create docker images and run:
+```
+docker run --rm --name express_multi_stage_distroless -d -e PORT=3001 -p 3001:3001 express_api_image:0.0.3
+docker run --rm -e PORT=3002 -p 3002:3002 --name typescript_api typescript_api_image:0.0.1
+```
+
+Create Dockerfile for react_app:
+```
+docker build -t react_app_image:0.0.1 .
+docker run --rm -p 5173:80 --name react_app react_app_image:0.0.1
+```
+
+```
+CMD ["nginx", "-g", "daemon off;"]
+```
+**nginx** calls the Nginx binary installed in the container and starts the Nginx web server to serve your static files.
+**-g "daemon off;"**
+- **-g** allows you to pass a global configuration directive to Nginx.
+- **daemon off;** tells Nginx not to run in the background (no daemon mode).
+Docker containers run as a single foreground process. If Nginx runs in the background (daemon mode), the main container process exits, and Docker stops the container. Running with daemon off; keeps Nginx in the foreground so the container stays alive.
+
+> Note: If you don’t specify a CMD or ENTRYPOINT in your Dockerfile, Docker uses the default CMD of the base image. For nginx:stable-alpine-slim, the default is: CMD ["nginx", "-g", "daemon off;"]. So even if you omit it, the container still starts Nginx in foreground mode, because that’s what the image defines. 
+
+It’s recommended to explicitly include it. Because it makes your Dockerfile self-contained and clear so anyone reading it sees exactly what command runs and if you later change the base image, you control the behavior.
+
+
+# spring_api
+
