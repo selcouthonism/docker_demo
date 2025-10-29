@@ -1,6 +1,7 @@
 // package.json "type": "commonjs"
 const express = require('express')
-const bodyParser = require('body-parser')
+//const bodyParser = require('body-parser') //Express 5 already includes modern body parsing
+const cors = require('cors');
 
 // package.json "type": "module"
 //import express from 'express'
@@ -10,7 +11,8 @@ const app = express()
 const appName = process.env.APP_NAME
 const port = process.env.PORT
 
-app.use(bodyParser.json())
+//app.use(bodyParser.json())
+app.use(cors()); // allow React app to fetch
 
 app.get('/', (req, res) => {
   const timestamp = new Date().toISOString(); // e.g. 2025-10-21T14:30:00.123Z
