@@ -371,6 +371,7 @@ app.use(cors({
 }));
 ```
 
+### Create Dockerfile:
 Create docker images and run:
 ```
 docker run --rm --name express_multi_stage_distroless -d -e PORT=3001 -p 3001:3001 express_api_image:0.0.3
@@ -396,6 +397,49 @@ Docker containers run as a single foreground process. If Nginx runs in the backg
 
 It’s recommended to explicitly include it. Because it makes your Dockerfile self-contained and clear so anyone reading it sees exactly what command runs and if you later change the base image, you control the behavior.
 
+### Create Dockerfile for dev:
+
+Dockerfile.dev:
+```
+FROM node:24.10.0-slim AS builder
+
+WORKDIR /app
+
+# Copy package.json and package-lock.json for faster builds
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy the rest of the source code
+COPY . .
+
+# Run the React app (Vite + TS) in dev mode
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+```
+
+***--host 0.0.0.0***: http://localhost:5173 shows nothing and this is a common issue when running a Vite React dev server inside Docker. By default, Vite’s dev server only listens on localhost (127.0.0.1) inside the container so it’s not accessible from your host machine through Docker port mapping. That’s why even though you mapped ***-p 5173:5173***, your browser can’t connect. The Vite process is listening only inside the container, not on all interfaces. You must tell Vite to listen on all network interfaces (not just localhost).
+
+To fix the problem:
+- Option 1: Add ***"--host", "0.0.0.0"*** to Dockerfile.dev
+- Option 2: Update package.json with ***"dev": "vite --host 0.0.0.0"***
+
+Create an docker image for development:
+```
+docker build -t react_app_image:dev -f Dockerfile.dev .
+```
+
+Run container for live development:
+```
+docker run --rm -d -p 5173:5173 -v ./public:/app/public -v ./src:/app/src --name react_app react_app_image:dev
+```
+The followings are bind mounts (volumes) that map local folders into the container:
+- ***-v ./public:/app/public***: ./public on your machine → /app/public in the container
+- ***-v ./src:/app/src***: ./src on your machine → /app/src in the container
+
+**Bind mounts** (a type of Docker volume) let you map a directory or file from your host machine into a container’s filesystem, so changes on one side are immediately reflected on the other. This is especially useful in development. For example, you can edit source code on your local machine, and the container instantly sees those changes without rebuilding the image. The syntax ***-v ./src:/app/src*** means “mount the local src folder into /app/src inside the container.” However, bind mounts directly expose your host’s filesystem to the container, so they’re generally used for development, while named volumes are safer and more portable for production data storage.
+
+**Note:** You cannot directly add bind mounts inside a Dockerfile. That’s because bind mounts are a runtime configuration, not part of the image itself. They depend on your local file paths (./src, ./public), which don’t exist inside the image when you build it. (**Dockerfile** defines the image (what’s inside) and ***docker run -v*** defines the container runtime behavior (what to mount, expose, connect, etc.))
 
 # spring_api
 

@@ -4,5 +4,6 @@ dist
 .env
 .git
 .gitignore
-Dockerfile
+Dockerfile*
 .dockerignore
+README.md
