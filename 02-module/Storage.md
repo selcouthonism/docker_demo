@@ -55,6 +55,28 @@ docker cp <containerId or mynginx>:/nginx_data ./folder-on-host
 
 > Note: To save data from a host file into a Docker volume, you can't copy directly to the volume from your host (because volumes live inside Docker's internal filesystem). But you can easily do it using a temporary container. Create a temporary container and save the file in volume. 
 
+List unused Docker volumes:
+```
+docker volume ls -f dangling=true
+```
+- ***docker volume ls*** → lists all Docker volumes on your system (volumes are persistent storage areas managed by Docker, not tied to containers directly).
+- ***-f*** or ***--filter*** → filters the list of volumes using specific criteria.
+- ***dangling=true*** → shows only dangling (unused) volumes (volumes that aren’t currently attached to any container).
+- ***-q*** ((quiet mode)) → Outputs only the volume names/IDs, one per line (no headers).
+
+
+Safely remove unused volumes (Deletes all dangling volumes): 
+```
+docker volume prune
+```
+- ***docker volume prune***: Built-in Docker command that removes all dangling volumes. **Asks for confirmation before deleting.**
+
+Deletes all dangling volumes:
+```
+docker volume rm $(docker volume ls -f dangling=true -q)
+```
+- Manually deletes all dangling volumes by name. Executes immediately — no prompt.
+
 ## Bind mounts
 
 Bind mounts create a direct link between a host system path and a container, allowing access to files or directories stored anywhere on the host. Since they aren't isolated by Docker, both non-Docker processes on the host and container processes can modify the mounted files simultaneously.
