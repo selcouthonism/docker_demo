@@ -1,24 +1,26 @@
 const express = require('express');
 const mongoose = require('mongoose');
 
+const port = process.env.PORT || 3000;
+
 const app = express();
 
 app.get('/health', (req, res) => {
-  res.status(200).send('up');
+  res.status(200).send('UP!');
 });
 
 console.log('Connecting to DB...');
 
-mongoose.connect('mongodb://mongodb/key-value-db', {
+mongoose.connect(`mongodb://${process.env.MONGODB_HOST}/${process.env.KEY_VALUE_DB}`, {
   auth: {
-    username: 'key-value-user',
-    password: 'key-value-password'
+    username: process.env.KEY_VALUE_USER,
+    password: process.env.KEY_VALUE_PASSWORD
   },
   connectTimeoutMS: 5000 // 5 seconds is more reasonable
 })
   .then(() => {
     console.log('Connected to MongoDB');
-    app.listen(3000, () => console.log('Listening on port 3000'));
+    app.listen(port, () => console.log(`Listening on port ${port}`));
   })
   .catch(err => {
     console.error('Something went wrong while connecting to MongoDB!');
