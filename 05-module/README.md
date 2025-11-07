@@ -53,17 +53,17 @@ docker rm -f mongodb
 ```
 ### Setup MongoDB
 
-Step 1: Creating and making shell scripts executable:
+#### Step 1: Creating and making shell scripts executable:
 ```
 touch start-db.sh
 chmod +x start-db.sh
-touch cleanup-db.sh
-chmod +x cleanup-db.sh
+touch cleanup.sh
+chmod +x cleanup.sh
 ```
 **start-db.sh** — used to start or configure the MongoDB container.
-**cleanup-db.sh** — used to stop and remove containers, networks, or volumes when cleaning up.
+**cleanup.sh** — used to stop and remove containers, networks, or volumes when cleaning up.
 
-Step 2: mongo-init.js auto-execution
+#### Step 2: mongo-init.js auto-execution
 If a file named mongo-init.js (or placed under /docker-entrypoint-initdb.d/ in the container) exists, the official MongoDB Docker image will automatically execute it the first time the container starts. This file typically contains initialization logic. For example, creating databases, users, or collections automatically at startup. (mongo-init.js will be picked by mongodb server during startup time)
 
 mongo-init.js:
@@ -88,7 +88,7 @@ db.createUser(
 )
 ```
 
-Step 3: Creating a Docker volume and network
+#### Step 3: Creating a Docker volume and network
 ```
 docker volume create key-value-data
 docker network create key-value-net
@@ -97,7 +97,7 @@ The volume (key-value-data) is used to persist MongoDB data outside the containe
 
 The network (key-value-net) allows containers (like MongoDB and debugging shells) to communicate securely by name (e.g., mongodb) without exposing ports to the host machine.
 
-Step 4: Starting the MongoDB container
+#### Step 4: Starting the MongoDB container
 start-db.sh:
 ```
 MONGODB_IMAGE="mongodb/mongodb-community-server"
@@ -141,16 +141,124 @@ docker run --rm -d --name $CONTAINER_NAME \
 ```
 This runs the MongoDB server inside a container that’s attached to the key-value-net network and stores its data in the key-value-data volume.
 
-Step 5: Connecting to MongoDB inside the same network (mongodb runs in the  key-value-net thus we can connect it):
+#### Step 5: Connecting to MongoDB inside the same network (mongodb runs in the  key-value-net thus we can connect it):
 ```
 docker run --rm --name debugsh -it --network key-value-net mongodb/mongodb-community-server:7.0-ubuntu2204 mongosh mongodb://mongodb/key-value-db
 ```
 Here, you run a temporary MongoDB shell container (debugsh) that connects to the MongoDB server (mongodb) using its container name as a hostname. Since both containers share the same Docker network (key-value-net), DNS resolution works automatically.
 
-Step 6: Connecting with authentication (Connect with username(key-value-user) and passsword(key-value-password))
+#### Step 6: Connecting with authentication (Connect with username(key-value-user) and passsword(key-value-password))
 ```
 docker run --rm --name debugsh -it --network key-value-net mongodb/mongodb-community-server:7.0-ubuntu2204 mongosh mongodb://key-value-user:key-value-password@mongodb/key-value-db
 ```
 This command is similar to the previous one but includes: A username (key-value-user) and password (key-value-password) and the target database name (key-value-db). This demonstrates how to connect securely to MongoDB using credentials which is essential for production setups.
 
-### Improve MongoDB
+### Refactor MongoDB script:
+
+#### Step 1: Create .env files for configuration
+Define three environment configuration files to store reusable variables:
+
+**.env.network**: Defines a reusable Docker network name for container communication.
+```
+export NETWORK_NAME="key-value-net"
+```
+
+**.env.volume**: Stores the name of the volume that persists MongoDB data.
+```
+export VOLUME_NAME="key-value-data"
+```
+
+**.env.db**: Defines the MongoDB container name.
+```
+export DB_CONTAINER_NAME="mongodb"
+```
+
+Separating configurations into .env files makes your scripts modular, maintainable, and environment-independent. Instead of hardcoding values in multiple scripts, you can easily change them in one place.
+
+#### Step 2: Create setup.sh
+This script prepares the Docker environment (volume and network):
+```
+# Responsible for creating volumes and networks
+
+source .env.network
+source .env.volume
+
+if [ "$(docker volume ls -q -f name=$VOLUME_NAME)" ]; then
+    echo "A volume with the name $VOLUME_NAME already exists. Skipping volume creation."
+else
+    docker volume create $VOLUME_NAME
+fi
+
+if [ "$(docker network ls -q -f name=$NETWORK_NAME)" ]; then
+    echo "A network with the name $NETWORK_NAME already exists. Skipping network creation."
+else
+    docker network create $NETWORK_NAME
+fi
+```
+Loads variables from .env files into the shell. Then it checks if the volume and network already exist before creating them.
+
+This prevents accidental duplication of Docker resources and ensures your setup process is idempotent — running it multiple times won’t cause errors or duplicate entities.
+
+Make the script executable:
+```
+chmod +x setup.sh
+```
+
+#### Step 3: Update start-db.sh
+The startup script now includes environment variables and the setup process:
+```
+source .env.db
+source .env.network
+source .env.volume
+source setup.sh
+```
+This ensures all necessary configuration and infrastructure are loaded before MongoDB starts.
+
+It also checks whether a MongoDB container with the same name is already running:
+```
+if [ "$(docker ps -q -f name=$CONTAINER_NAME)" ]; then
+    echo "A container with the name $CONTAINER_NAME already exists."
+    echo "The container will be removed when stopped."
+    echo "To stop the container, run: docker stop $CONTAINER_NAME"
+    exit 1
+fi
+```
+
+This prevents conflicts by ensuring you don’t start a second MongoDB container with the same name. It also provides clear user feedback and guidance.
+
+#### Step 4: Create cleanup.sh
+This script stops and removes MongoDB containers, networks, and volumes safely:
+```
+source .env.db
+source .env.network
+source .env.volume
+
+# Stop and remove mongodb containers
+
+if [ "$(docker ps -aq -f name=$CONTAINER_NAME)" ]; then
+    echo "Stopping volume $CONTAINER_NAME"
+    docker stop $CONTAINER_NAME #&& docker rm $CONTAINER_NAME #Add if the container is not running with --rm 
+else
+    echo "A container with the name $CONTAINER_NAME does not exists. Skipping container deletion."
+fi
+
+# Remove volume and network
+
+if [ "$(docker volume ls -q -f name=$VOLUME_NAME)" ]; then 
+    echo "Removing volume $VOLUME_NAME"
+    docker volume rm $VOLUME_NAME
+else
+    echo "A volume with the name $VOLUME_NAME does not exists. Skipping volume deletion."
+fi
+
+if [ "$(docker network ls -q -f name=$NETWORK_NAME)" ]; then
+    echo "Removing network $NETWORK_NAME"
+    docker network rm $NETWORK_NAME
+else
+    echo "A network with the name $NETWORK_NAME does not exists. Skipping network deletion."
+fi
+```
+Stops the MongoDB container if it exists. Removes the associated volume and network.
+
+Ensures a clean teardown of the Docker environment, removing any persistent data or networking setup to return the system to a clean state.
+It includes safety checks so it won’t fail if a resource doesn’t exist.

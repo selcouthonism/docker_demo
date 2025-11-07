@@ -1,6 +1,10 @@
 MONGODB_IMAGE="mongodb/mongodb-community-server"
 MONGODB_TAG="7.0-ubuntu2204"
-CONTAINER_NAME="mongodb"
+
+source .env.db
+source .env.network
+source .env.volume
+source setup.sh
 
 # Root creadentials
 ROOT_USER="root-user"
@@ -14,11 +18,16 @@ KEY_VALUE_PASSWORD="key-value-password"
 # Connectivity
 LOCALHOST_PORT=27017
 CONTAINER_PORT=27017
-NETWORK_NAME="key-value-net"
 
 # Storage
-VOLUME_NAME="key-value-data"
 VOLUME_CONTAINER_PATH="/data/db"
+
+if [ "$(docker ps -q -f name=$CONTAINER_NAME)" ]; then
+    echo "A container with the name $CONTAINER_NAME already exists."
+    echo "The container will be removed when stopped."
+    echo "To stop the container, run: docker stop $CONTAINER_NAME"
+    exit 1
+fi
 
 docker run --rm -d --name $CONTAINER_NAME \
     -e MONGODB_INITDB_ROOT_USERNAME=$ROOT_USER \
