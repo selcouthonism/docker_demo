@@ -262,3 +262,140 @@ Stops the MongoDB container if it exists. Removes the associated volume and netw
 
 Ensures a clean teardown of the Docker environment, removing any persistent data or networking setup to return the system to a clean state.
 It includes safety checks so it won’t fail if a resource doesn’t exist.
+
+## Express API
+
+### Create an express project
+
+#### Initialize a Node.js project and install dependencies:
+```
+npm init -y
+npm install express@5.1.0 mongoose@8.19.3 --save-exact
+```
+- **npm init -y** automatically generates a default package.json file.
+- **express@5.1.0** installs the latest stable version of Express 5 (for REST APIs).
+- **mongoose@8.19.3** installs a MongoDB ODM compatible with MongoDB 7.
+- The **--save-exact** flag locks versions precisely, ensuring consistent builds across environments.
+
+Install nodemon (development only) for hot reloading:
+```
+npm install --save-dev --save-exact nodemon@3.1.10
+```
+- **--save-dev** Installs nodemon as a development dependency, meaning it’s not needed in production (it’s used only for local development and debugging).
+- **--save-exact** Locks the exact version number in package.json (for example, "nodemon": "3.1.7") instead of a range like "^3.1.7".
+This ensures everyone on your team or CI/CD pipeline runs the exact same nodemon version, avoiding version drift or unexpected behavior.
+
+#### Create the Docker Image
+Build a Docker image specifically for development:
+```
+docker build -t express_backend_image:dev -f Dockerfile.dev .
+```
+- **-t express_backend_image:dev** names and tags the image.
+- **-f Dockerfile.dev** tells Docker to use the development-specific Dockerfile (often includes nodemon, volume mounts, etc.).
+- **.** defines the build context as the current directory.
+
+This creates a reproducible environment to run the Express app in a containerized setup.
+
+#### Run the Express Container
+Run the image as a container and connect it to your MongoDB network ():
+```
+docker run --rm -d --network key-value-net -p 3000:3000 --name express_backend express_backend_image:dev
+```
+- **--rm** removes the container automatically when stopped.
+- **-d** runs it in detached (background) mode.
+- **--network key-value-net** connects it to the same Docker network as MongoDB, enabling hostname-based access.
+- **-p 3000:3000** maps port 3000 of the container to port 3000 on your host machine.
+- **--name express_backend** assigns a friendly container name for easier reference.
+
+#### Automate with start-backend.sh
+This script automates the build and run steps, ensuring configuration consistency. 
+Create start-backend.sh and change its mode (**chmod +x start-backend.sh**):
+```
+#Loads environment variables for database credentials and network name.
+source .env.db
+source .env.network
+
+#Defines reusable variables for container configuration and connectivity.
+BACKEND_IMAGE_NAME='express_backend_image'
+BACKEND_IMAGE_TAG='dev'
+BACKEND_CONTAINER_NAME='express_backend'
+
+# Connectivity
+LOCALHOST_PORT=3000
+CONTAINER_PORT=3000
+
+MONGODB_HOST='mongodb'
+
+#Prevents duplicate containers by checking if one with the same name is already running.
+if [ "$(docker ps -aq -f name=$BACKEND_CONTAINER_NAME)" ]; then
+    echo "A container with the name $BACKEND_CONTAINER_NAME already exists."
+    echo "The container will be removed when stopped."
+    echo "To stop the container, run: docker stop $BACKEND_CONTAINER_NAME"
+    exit 1
+fi
+
+#Builds the Docker image using the specified Dockerfile in the express_api folder.
+docker build -t $BACKEND_IMAGE_NAME:$BACKEND_IMAGE_TAG -f express_api/Dockerfile.dev express_api
+
+docker run --rm -d --name $BACKEND_CONTAINER_NAME \
+    -e KEY_VALUE_DB=$KEY_VALUE_DB \
+    -e KEY_VALUE_USER=$KEY_VALUE_USER \
+    -e KEY_VALUE_PASSWORD=$KEY_VALUE_PASSWORD \
+    -e PORT=$CONTAINER_PORT \
+    -e MONGODB_HOST=$MONGODB_HOST \
+    -p $LOCALHOST_PORT:$CONTAINER_PORT \
+    -v ./express_api/src:/app/src \
+    --network $NETWORK_NAME \
+    $BACKEND_IMAGE_NAME:$BACKEND_IMAGE_TAG
+```
+
+This ensures the backend container: Connects securely to MongoDB using credentials and runs isolated but network-accessible within the Docker environment. It can be rebuilt or restarted easily without manual cleanup. (First run start-db.sh then start-backend.sh)
+
+Express and MongoDB stack launches in isolated containers connected via **key-value-net**. You can now access the backend API at: http://localhost:3000
+
+#### Test application
+Run start-db.sh:
+```
+./start-db.sh
+```
+This script sets up and starts your MongoDB container. It reads environment variables (from .env.db, .env.network, and .env.volume), ensures the necessary Docker volume and network exist, and then launches MongoDB inside the Docker network (key-value-net).
+This ensures that your database has persistent storage and is reachable by name (mongodb) from other containers like your backend API.
+
+Run start-backend.sh script:
+```
+./start-backend.sh
+```
+This script builds and runs the Express backend container. It connects the container to the same Docker network (key-value-net) so that it can communicate with MongoDB using the hostname mongodb. It passes environment variables such as:
+**KEY_VALUE_DB**, **KEY_VALUE_USER**, **KEY_VALUE_PASSWORD** for database credentials, and **PORT** / **MONGODB_HOST** for service configuration. After starting, the Express server listens on port 3000, exposed to your host system at localhost:3000.
+
+Test the API:
+```
+curl -i -X POST http://localhost:3000/store -H "Content-Type: application/json" -d '{"key":"hello", "value":"world"}'
+```
+This curl command sends an HTTP POST request to your running Express API. It attempts to store a key–value pair ("hello", "world") in MongoDB through the backend endpoint /store. 
+- The **-i** flag includes response headers in the output. 
+- The **-X POST** flag specifies the HTTP method.
+
+If everything is working, you should see a 201 Created response, confirming that your backend and MongoDB are connected and functional.
+
+Retrieve a value by key:
+```
+curl -i -X GET http://localhost:3000/store/hello
+```
+This sends a GET request to your backend API, asking for the value associated with the key "hello".
+The backend looks up the key "hello" in MongoDB. If found, it returns the stored value ("world") with an HTTP 200 OK status.
+If not found, it responds with a 404 Not Found.
+
+
+Update an existing key:
+```
+curl -i -X PUT http://localhost:3000/store/hello -H "Content-Type: application/json" -d '{"value":"universe"}'
+```
+This sends a PUT request to update the existing key "hello" in your database. The JSON body specifies the new value: "universe".
+The backend finds the record for "hello" and updates its value in MongoDB. A successful update returns 200 OK. If the key doesn’t exist, the API return an error (404 Not Found).
+
+Delete a key:
+```
+curl -i -X DELETE http://localhost:3000/store/hello
+```
+This sends a DELETE request to remove the key "hello" and its value from MongoDB. If the deletion is successful, you should see a 204 No Content response. If the key doesn’t exist, the API returns 404 Not Found.
