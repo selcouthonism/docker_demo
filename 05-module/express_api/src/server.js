@@ -3,12 +3,14 @@ const mongoose = require('mongoose');
 
 const {healthRouter} = require('./routes/health');
 const {storeRouter} = require('./routes/store');
+const errorHandler = require('./middlewares/errorHandler');
 
 const port = process.env.PORT || 3000;
 
 const app = express();
 app.use(express.json());
 
+app.use(errorHandler); // centralized
 app.use('/health', healthRouter);
 app.use('/store', storeRouter);
 
