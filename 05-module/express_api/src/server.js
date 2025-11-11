@@ -1,13 +1,16 @@
 const express = require('express');
 const mongoose = require('mongoose');
 
+const {healthRouter} = require('./routes/health');
+const {storeRouter} = require('./routes/store');
+
 const port = process.env.PORT || 3000;
 
 const app = express();
+app.use(express.json());
 
-app.get('/health', (req, res) => {
-  res.status(200).send('UP!');
-});
+app.use('/health', healthRouter);
+app.use('/store', storeRouter);
 
 console.log('Connecting to DB...');
 
