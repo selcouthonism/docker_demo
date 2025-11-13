@@ -18,7 +18,7 @@ if [ "$(docker ps -aq -f name=$BACKEND_CONTAINER_NAME)" ]; then
     exit 1
 fi
 
-docker build -t $BACKEND_IMAGE_NAME:$BACKEND_IMAGE_TAG -f express_api/Dockerfile.dev express_api
+docker build -t $BACKEND_IMAGE_NAME:$BACKEND_IMAGE_TAG -f ../express_api/Dockerfile.dev express_api
 
 docker run --rm -d --name $BACKEND_CONTAINER_NAME \
     -e KEY_VALUE_DB=$KEY_VALUE_DB \
@@ -27,6 +27,6 @@ docker run --rm -d --name $BACKEND_CONTAINER_NAME \
     -e PORT=$CONTAINER_PORT \
     -e MONGODB_HOST=$MONGODB_HOST \
     -p $LOCALHOST_PORT:$CONTAINER_PORT \
-    -v ./express_api/src:/app/src \
+    -v ../express_api/src:/app/src \
     --network $NETWORK_NAME \
     $BACKEND_IMAGE_NAME:$BACKEND_IMAGE_TAG

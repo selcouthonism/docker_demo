@@ -1,4 +1,7 @@
-#
+# Projects
+- [MongoDB](#MongoDB)
+- [Express API](#Express API)
+- [Automate with scripts](#Automate with scripts)
 
 ## MongoDB
 
@@ -307,6 +310,8 @@ docker run --rm -d --network key-value-net -p 3000:3000 --name express_backend e
 - **-p 3000:3000** maps port 3000 of the container to port 3000 on your host machine.
 - **--name express_backend** assigns a friendly container name for easier reference.
 
+## Automate with scripts
+
 #### Automate with start-backend.sh
 This script automates the build and run steps, ensuring configuration consistency. 
 Create start-backend.sh and change its mode (**chmod +x start-backend.sh**):
@@ -335,7 +340,7 @@ if [ "$(docker ps -aq -f name=$BACKEND_CONTAINER_NAME)" ]; then
 fi
 
 #Builds the Docker image using the specified Dockerfile in the express_api folder.
-docker build -t $BACKEND_IMAGE_NAME:$BACKEND_IMAGE_TAG -f express_api/Dockerfile.dev express_api
+docker build -t $BACKEND_IMAGE_NAME:$BACKEND_IMAGE_TAG -f ../express_api/Dockerfile.dev express_api
 
 docker run --rm -d --name $BACKEND_CONTAINER_NAME \
     -e KEY_VALUE_DB=$KEY_VALUE_DB \
@@ -344,7 +349,7 @@ docker run --rm -d --name $BACKEND_CONTAINER_NAME \
     -e PORT=$CONTAINER_PORT \
     -e MONGODB_HOST=$MONGODB_HOST \
     -p $LOCALHOST_PORT:$CONTAINER_PORT \
-    -v ./express_api/src:/app/src \
+    -v ../express_api/src:/app/src \
     --network $NETWORK_NAME \
     $BACKEND_IMAGE_NAME:$BACKEND_IMAGE_TAG
 ```
@@ -354,7 +359,7 @@ This ensures the backend container: Connects securely to MongoDB using credentia
 Express and MongoDB stack launches in isolated containers connected via **key-value-net**. You can now access the backend API at: http://localhost:3000
 
 #### Test application
-Run start-db.sh:
+Go to scripts folder and run start-db.sh:
 ```
 ./start-db.sh
 ```
@@ -399,3 +404,5 @@ Delete a key:
 curl -i -X DELETE http://localhost:3000/store/hello
 ```
 This sends a DELETE request to remove the key "hello" and its value from MongoDB. If the deletion is successful, you should see a 204 No Content response. If the key doesn’t exist, the API returns 404 Not Found.
+
+## Automate with Docker Composo
