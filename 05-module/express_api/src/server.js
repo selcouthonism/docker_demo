@@ -10,9 +10,9 @@ const port = process.env.PORT || 3000;
 const app = express();
 app.use(express.json());
 
-app.use(errorHandler); // centralized
 app.use('/health', healthRouter);
 app.use('/store', storeRouter);
+app.use(errorHandler); // centralized
 
 console.log('Connecting to DB...');
 

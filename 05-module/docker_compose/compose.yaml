@@ -1,0 +1,60 @@
+name: project_name
+
+services:
+  backend:
+    build:
+      context: ../express_api
+      dockerfile: Dockerfile.prod
+    ports:
+      - 3000:3000
+    env_file:
+      - .env.db-key-value
+    environment:
+      - MONGODB_HOST=db
+      - PORT=3000
+    depends_on:
+      - db
+    networks:
+      - key-value-net
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"     # max 50% of a CPU core
+          memory: "512M"   # max RAM
+        reservations:
+          cpus: "0.25"     # guaranteed min CPU
+          memory: "256M"   # guaranteed min RAM
+    restart: always
+
+  db:
+    image: mongodb/mongodb-community-server:7.0-ubuntu2204
+    ports:
+      - 27017:27017
+    env_file:
+      - .env.db-root-creds
+      - .env.db-key-value
+    volumes:
+      - type: bind
+        source: ./db-config/mongo-init.js
+        target: /docker-entrypoint-initdb.d/mongo-init.js
+        read_only: true
+      - type: volume
+        source: mongodb-data
+        target: /data/db
+    networks:
+      - key-value-net
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: "1G"
+        reservations:
+          cpus: "0.50"
+          memory: "512M"
+    restart: always
+
+volumes:
+  mongodb-data:
+
+networks:
+  key-value-net:
