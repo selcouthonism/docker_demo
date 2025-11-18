@@ -1,7 +1,8 @@
 # Projects
-- [MongoDB](#MongoDB)
-- [Express API](#Express API)
-- [Automate with scripts](#Automate with scripts)
+- [MongoDB](#mongodb)
+- [Express API](#express-api)
+- [Automate with scripts](#automate-with-scripts)
+- [Automate with Docker Compose](#automate-with-docker-compose)
 
 ## MongoDB
 
@@ -405,4 +406,72 @@ curl -i -X DELETE http://localhost:3000/store/hello
 ```
 This sends a DELETE request to remove the key "hello" and its value from MongoDB. If the deletion is successful, you should see a 204 No Content response. If the key doesn’t exist, the API returns 404 Not Found.
 
-## Automate with Docker Composo
+## Automate with Docker Compose
+Docker Compose is a tool that allows you to define and manage multi-container Docker applications using a single configuration file, typically named **docker-compose.yml** or **compose.yaml**. With Compose, you can declare your application’s services, networks, and volumes in a structured way, and then start everything with a single command ***docker-compose up***.
+- **Services**: Each containerized component of your application (Express API, MongoDB) is defined as a service.
+- **Networks**: Compose automatically creates a network so services can communicate with each other.
+- **Volumes**: Persistent storage can be attached to containers to retain data between restarts.
+- **Environment variables**: You can load *.env* files to configure services dynamically.
+- **Automation**: Compose simplifies building, running, and scaling multi-container applications without manually starting each container.
+
+### Starts containers, using existing images if available:
+```
+docker compose up
+```
+The ***docker compose up*** command builds (if necessary) and starts all the services defined in your compose.yaml file. It automatically creates the required networks and volumes (only when they are referenced by a service in compose.yaml file), allowing the containers to communicate with each other. By default, it runs in the foreground, showing the logs from all services, but you can run it in detached mode with the **-d** flag. This command is the primary way to start a multi-container application in a single step.
+
+### Rebuilds images first, then starts containers, ensuring changes are:
+```
+docker compose up --build -d
+```
+The ***docker compose up --build*** command is an extension of the standard docker compose up that forces Docker to rebuild the images before starting the containers. Normally, docker compose up will use existing images if they already exist, which can lead to running outdated code or dependencies. Adding **--build** ensures that Docker checks the Dockerfile and rebuilds the images for all services that have a build context, so any changes in your source code, dependencies, or Dockerfile are included in the new container. After rebuilding, Compose starts the containers, creates networks and volumes as needed, and runs the application just like a regular up command.
+
+### Hot-reload for development:
+```
+develop:
+    watch:
+    - action: sync
+        path: ../express_api/src
+        target: /app/src
+```
+
+Development Mode:
+```
+docker compose -f compose.dev.yaml up --build --watch
+```
+The ***docker compose up --watch*** command starts your Docker Compose services and continuously monitors your project files for changes, automatically triggering rebuilds and restarts as needed. If you modify source code that is bind-mounted into a container, Docker will restart just that container; if you change files that affect the build context or Dockerfile, Docker will rebuild the image and then restart the service. This creates a smooth, hot-reload–like development workflow where containers automatically pick up code changes without manually running docker compose build or restarting services.
+
+Rebuild and start:
+```
+docker compose up --build --watch
+```
+
+### List all compose containers:
+```
+docker compose ps
+```
+The ***docker compose ps*** command lists all containers associated with the current Compose project. It shows important information such as container names, service names, current status, and exposed ports. This is useful for quickly checking which services are running, monitoring their state, and verifying that the containers started correctly.
+
+### Stop all containers:
+```
+docker compose stop
+```
+The ***docker compose stop*** command gracefully stops all running containers defined in your docker-compose.yml file without removing them. It sends a SIGTERM signal to each container, giving the processes inside a chance to shut down cleanly, and after a timeout, it sends SIGKILL if needed. The containers, networks, and volumes remain on your system, so you can restart everything quickly using docker compose start or docker compose up without rebuilding or recreating resources.
+
+### Stop and remove all containers:
+```
+docker compose down
+```
+The ***docker compose down*** command stops and removes all containers, networks, and optionally volumes created by ***docker compose up***. It effectively cleans up the environment, allowing you to start fresh next time. By default, it preserves volumes, but you can remove them with the **-v** flag. This command ensures that no lingering resources consume system memory or disk space after your application is stopped.
+
+### Stop specific container:
+```
+docker compose stop backend
+```
+The ***docker compose stop backend*** stops only the container named backend as defined in your docker-compose.yml file, instead of stopping the entire application stack. It sends a graceful shutdown signal (SIGTERM) to that specific service, allowing it to clean up and exit safely. The container is *stopped but not removed*, so you can restart it later with ***docker compose start backend*** or ***docker compose up backend*** without rebuilding or recreating anything.
+
+### Show live resource usage:
+```
+docker compose stats
+```
+***docker compose stats*** is a convenience command that shows live resource usage (CPU, memory, network I/O, block I/O, PIDs) for all services defined in your docker-compose.yml, similar to what ***docker stats*** does for individual containers. Instead of manually checking each container, this command streams real-time performance metrics for every service in the Compose project, helping you monitor how your application behaves under load. It’s especially useful during development or debugging to quickly detect memory leaks, high CPU usage, or unexpected network traffic across the entire multi-container stack.
