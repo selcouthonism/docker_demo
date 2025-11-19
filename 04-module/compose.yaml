@@ -1,0 +1,56 @@
+name: project_name
+
+services:
+  express:
+    build:
+      context: ./express_api
+      dockerfile: Dockerfile.multistage-distroless
+    ports:
+      - 3001:3001
+    environment:
+      - APP_NAME=Express API Compose
+      - PORT=3001
+    networks:
+      - app_network
+
+  typescript:
+    build:
+      context: ./typescript_api
+      dockerfile: Dockerfile.multistage-distroless
+    ports:
+      - 3002:3002
+    environment:
+      - APP_NAME=Typescript API Compose
+      - PORT=3002
+    networks:
+      - app_network
+  spring:
+    build:
+      context: ./spring_api
+      dockerfile: Dockerfile
+    ports:
+      - 8080:8080
+    environment:
+      - APP_NAME=Spring API Compose
+    networks:
+      - app_network
+
+  react:
+    build:
+      context: ./react_app
+      dockerfile: Dockerfile
+    ports:
+      - 5173:80
+    environment:
+      - REACT_APP_EXPRESS_API=http://express:3001
+      - REACT_APP_TS_API=http://typescript:3002
+      - REACT_APP_SPRING_API=http://spring:8080
+    depends_on:
+      - express
+      - typescript
+      - spring
+    networks:
+      - app_network
+
+networks:
+  app_network:
