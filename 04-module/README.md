@@ -443,3 +443,17 @@ The followings are bind mounts (volumes) that map local folders into the contain
 
 # spring_api
 
+Build docker image:
+```
+docker build -t spring_api_image:0.0.1 .
+```
+
+Run the container:
+```
+docker run -d --rm -p 8080:8080 --name spring_api spring_api_image:0.0.1
+```
+
+Test:
+```
+curl http://localhost:8080
+```
