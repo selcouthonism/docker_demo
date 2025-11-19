@@ -6,20 +6,25 @@ const [errors, setErrors] = useState({ express: false, ts: false, spring: false 
 
 useEffect(() => {
     const fetchApi = async (url: string, key: keyof typeof responses) => {
-    try {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        const data = await res.text();
-        setResponses(prev => ({ ...prev, [key]: data }));
-    } catch (err) {
-        console.error(`Error fetching ${key}:`, err);
-        setErrors(prev => ({ ...prev, [key]: true }));
-    }
-};
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+            const data = await res.text();
+            setResponses(prev => ({ ...prev, [key]: data }));
+        } catch (err) {
+            console.error(`Error fetching ${key}:`, err);
+            setErrors(prev => ({ ...prev, [key]: true }));
+        }
+    };
 
-fetchApi("http://localhost:3001/", "express");
-fetchApi("http://localhost:3002/", "ts");
-fetchApi("http://localhost:8080/", "spring");
+    // Use environment variables injected by Docker Compose
+    //fetchApi(`${process.env.REACT_APP_EXPRESS_API}/`, "express");
+    //fetchApi(`${process.env.REACT_APP_TS_API}/`, "ts");
+    //fetchApi(`${process.env.REACT_APP_SPRING_API}/`, "spring");
+
+    fetchApi("http://localhost:3001/", "express");
+    fetchApi("http://localhost:3002/", "ts");
+    fetchApi("http://localhost:8080/", "spring");
 }, []);
 
 return (
