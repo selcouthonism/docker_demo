@@ -1,0 +1,17 @@
+name: notes-backend
+
+services:
+  notes:
+    build: 
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - 3001:3001
+    environment:
+      - PORT=3001
+    develop:
+      watch:
+        - action: sync
+          path: ./src
+          target: /app/src
+
