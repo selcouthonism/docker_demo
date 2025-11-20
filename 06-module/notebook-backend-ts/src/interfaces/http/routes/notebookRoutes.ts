@@ -2,11 +2,13 @@ import { Router } from "express";
 import { NotebookController } from "../controllers/NotebookController.js";
 import { NotebookService } from "../../../application/notebook/NotebookService.js";
 import { InMemoryNotebookRepository } from "../../../infrastructure/persistence/InMemoryNotebookRepository.js";
+import { MongooseNotebookRepository } from "../../../infrastructure/persistence/MongooseNotebookRepository.js";
 
 const router = Router();
 
 // Setup service + controller
-const repo = new InMemoryNotebookRepository();
+// const repo = new InMemoryNotebookRepository();
+const repo = new MongooseNotebookRepository();
 const service = new NotebookService(repo);
 const controller = new NotebookController(service);
 
