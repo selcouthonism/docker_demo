@@ -1,0 +1,4 @@
+include:
+  - notebook-backend-ts/compose.yaml
+  - notes-backend/compose.yaml
+
