@@ -1,0 +1,45 @@
+name: notebooks-backend
+
+services:
+  notes:
+    build: 
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - 3000:80
+    environment:
+      - PORT=80
+      # Gets information from .env file
+      - DB_URL=mongodb://${NOTEBOOKS_DB_USER}:${NOTEBOOKS_DB_PASSWORD}@notebooks-db/${NOTEBOOKS_DB_NAME}
+    develop:
+      watch:
+        - action: sync
+          path: ./src
+          target: /app/src
+    depends_on:
+      - notebooks-db
+    networks:
+      - notebooks-net
+  
+  notebooks-db:
+    image: mongodb/mongodb-community-server:7.0-ubuntu2204
+    ports:
+      - 27017:27017
+    env_file:
+      - .env
+    volumes:
+      - type: bind
+        source: ./db-config/mongo-init.js
+        target: /docker-entrypoint-initdb.d/mongo-init.js
+        read_only: true
+      - type: volume
+        source: notebooks-data
+        target: /data/db
+    networks:
+      - notebooks-net
+
+volumes:
+  notebooks-data:
+
+networks:
+  notebooks-net:

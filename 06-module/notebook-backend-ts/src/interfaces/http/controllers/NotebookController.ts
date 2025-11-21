@@ -27,6 +27,7 @@ export class NotebookController {
   get = async (req: Request, res: Response) => {
     try {
       const id = req.params.id!;
+      //if (!id) return res.status(400).json({ message: "URL does not contain an id" });
       const notebook = await this.service.get(id);
       return res.json(notebook);
     } catch (err: any) {
