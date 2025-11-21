@@ -4,14 +4,44 @@ services:
   notes:
     build: 
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
+      target: development
+      #target: production
     ports:
-      - 3001:3001
+      - 3001:80
     environment:
-      - PORT=3001
+      - PORT=80
+      # Gets information from .env file
+      - DB_URL=mongodb://${NOTES_DB_USER}:${NOTES_DB_PASSWORD}@notes-db/${NOTES_DB_NAME}
     develop:
       watch:
         - action: sync
           path: ./src
           target: /app/src
+    depends_on:
+      - notes-db
+    networks:
+      - notes-net
+  
+  notes-db:
+    image: mongodb/mongodb-community-server:7.0-ubuntu2204
+    ports:
+      - 27018:27017
+    env_file:
+      - .env
+    volumes:
+      - type: bind
+        source: ./db-config/mongo-init.js
+        target: /docker-entrypoint-initdb.d/mongo-init.js
+        read_only: true
+      - type: volume
+        source: notes-data
+        target: /data/db
+    networks:
+      - notes-net
 
+volumes:
+  notes-data:
+
+networks:
+  notes-net:
