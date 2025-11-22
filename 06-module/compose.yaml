@@ -2,3 +2,20 @@ include:
   - notebook-backend-ts/compose.yaml
   - notes-backend/compose.yaml
 
+services:
+  reverse-proxy:
+    image: nginx:1.29.3
+    volumes:
+      - type: bind
+        source: ./reverse-proxy/nginx.conf
+        target: /etc/nginx/nginx.conf
+    ports:
+      - 8080:80
+    networks:
+      - backend-app-net
+    depends_on:
+      - notebooks #service name must match with notebook-backend-ts/compose.yaml
+      - notes
+
+networks:
+  backend-app-net:

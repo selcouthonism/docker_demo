@@ -1,0 +1,7 @@
+services:
+  notebooks:
+    networks:
+      - backend-app-net
+  notes:
+    networks:
+      - backend-app-net
