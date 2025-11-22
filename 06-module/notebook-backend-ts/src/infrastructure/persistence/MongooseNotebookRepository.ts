@@ -12,7 +12,7 @@ interface NotebookDoc extends Document {
 const notebookSchema = new Schema<NotebookDoc>(
   {
     name: { type: String, required: true },
-    description: { type: String, required: false },
+    description: { type: String, required: false, default: null },
   },
   { timestamps: true }
 );
