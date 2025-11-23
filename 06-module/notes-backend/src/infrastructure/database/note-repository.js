@@ -22,4 +22,8 @@ export class MongoNoteRepository {
   async findById(id) {
     return await NoteModel.findById(id);
   }
+
+  async findAll() {
+    return await NoteModel.find({});
+  }
 }

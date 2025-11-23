@@ -19,5 +19,6 @@ const noteController = new NoteController(createNoteUseCase);
 // --- Routes ---
 router.post('/api/notes', noteController.create);
 router.get('/api/notes/:id', noteController.find);
+router.get('/api/notes/', noteController.list);
 
 export default router;

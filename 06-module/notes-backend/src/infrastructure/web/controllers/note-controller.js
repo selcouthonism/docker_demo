@@ -47,4 +47,12 @@ export class NoteController {
     res.json(responseDto);
 
   }
+
+  list = async (req, res) => {
+    const notes = await this.createNoteUseCase.list();
+
+    const responseDtos = notes.map(note => NoteResponseDTO.from(note));
+
+    res.json(responseDtos);
+  };
 }

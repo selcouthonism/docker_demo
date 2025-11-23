@@ -56,4 +56,14 @@ export class CreateNoteUseCase {
     return note;
   }
 
+  async list() {
+    const note = await this.noteRepository.findAll();
+    
+    if(!note){
+      throw new NotFoundError("Note not found.");
+    }
+    
+    return note;
+  }
+
 }
