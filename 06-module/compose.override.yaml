@@ -3,5 +3,8 @@ services:
     networks:
       - backend-app-net
   notes:
+    environment:
+      - NOTEBOOKS_API_URL=http://notebooks/api/notebooks
+      #- NOTEBOOKS_API_URL=http://reverse-proxy/api/notebooks
     networks:
       - backend-app-net
