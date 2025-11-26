@@ -10,3 +10,5 @@ This repository is created to demonstrate commonly used docker features
 **04-module:** Includes multiple projects (express_api, typescript_api, react_app), each with its own Dockerfile, and demonstrates how Docker is used with them.
 
 **05-module:** Demonstrates a complete Express.js application integrated with a MongoDB database, highlighting the use of MongoDB authorization, environment variables (.env), and Docker-based automation. It presents two different solutions for automating the same deployment process: initially using shell scripts to create Docker volumes, networks, and containers manually, and later adopting a Docker Compose file for a more streamlined, declarative orchestration of services.
+
+**05-module:** Provides a lightweight microservices setup. It includes an Nginx reverse proxy that routes API requests to the appropriate Notes and Notebooks services. Both applications use MongoDB as their database. All services can be started together using the compose.yaml file.”
